@@ -7,11 +7,25 @@
 		<meta name="apple-mobile-web-app-status-bar-style" content="black" />
 		<title>ALEXANDRIA</title>
 		<meta name="description" content="" />
+		<meta name="microtip" content="1AaMehNHLRDH4JPKaCkBjn8WFjJ8nEwvsr" data-currency="btc" />
 		<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0" />
+		<script type="emacs-lisp">
+		    (progn (setq httpd-port 8001) (httpd-start) (impatient-mode))
+		</script>
+		<script type="text/javascript">
+		 /* hacks */
+		 window.IPFSHost = 'http://ipfs.alexandria.media/ipfs';
+		 window.librarianHost = 'http://localhost:8079';
+		</script>
+		
+		<script src="vendor/jquery/dist/jquery.min.js"></script>
+		<script src="vendor/moment/min/moment.min.js"></script>
 		<link rel="stylesheet" href="css/fonts.css" />
 		<link rel="stylesheet" href="css/normalize.min.css" />
 <!--		<link rel="stylesheet" href="//code.jquery.com/ui/1.11.2/themes/smoothness/jquery-ui.css"> -->
 		<link rel="stylesheet" href="css/alexandria.css" />
+		<link rel="stylesheet" href="css/media.css" />
+		<link rel="stylesheet" href="css/media-play.css" />
                 <!-- HACK: xaiki
 		<script type="text/javascript">
 			SC.initialize({
@@ -19,19 +33,6 @@
 			});
 		</script>
                 -->
-                
-<!--                
-		<script type="text/javascript">
-	           var playerDomain = 'player.animatron.com';
-	           var amazonDomain = 'https://snapshots.animatron.com';
-	           var width = 30;
-	           var height = 30;
-	           var playerVersion = 'v1.3';
-	           var filename = 'ba1301d4ec40418b0c51912d0294c0f6.json';
-	           var autostart = true;
-	           var loop = true;
-		</script>
--->
 	</head>
 	
 	<body onload="if(typeof start === 'function' ) { start(); }" class="no-iframe">
@@ -512,8 +513,7 @@
 			</ul>
 		</main>
 
-		<!-- Share New Content -->
-		
+		<!-- SHARE NEW CONTENT -->		
 		<main id="add-media" class="sharing-ui">
 			<div id="add-media-container">
 				<nav>
@@ -993,7 +993,7 @@
 			</div>
 		</main>
 
-<!-- PUBLISHER VIEW -->
+		<!-- PUBLISHER VIEW -->
 		<main id="view-publisher">
 			<div id="view-publisher-wrap" class="view-publishers-ui wrapper">
 				<div id="publisher-view-entity" class="entity-view">
@@ -1021,7 +1021,7 @@
 			</div>
 		</main>
 
-		<!-- view-media -->
+		<!-- v0.5.1 ARTIFACT VIEW -->
 		<main id="view-media" class="view-media-ui">
 			<div id="view-media-wrap" class="wrapper">
 				<div id="media-view-entity" class="entity-view">
@@ -1046,11 +1046,224 @@
 						<div class="row entity-footer media-movie">
 							<a class="wsite-button lightboxVideo" id="trailer-link" data-source="#" onclick="lightboxVideo(this)">trailer</a> <label>720</label><a class="alex-switch"></a><label>1080</label>
 						</div>
+						<div class="row embedcode">
+							<h3>Embed this Artifact</h3>
+							<pre class="iframecode"></pre>
+						</div>
 					</div>
 				</div>				
 			</div>
 		</main>
+
+		<!-- v0.6 ARTIFACT VIEW -->
+		<main id="view-artifact" class="view-artifact-ui">
+			<div id="view-artifact-wrap" class="wrapper">
+				<div class="container">
+				   <div class="top">
+				       <div class="media-info">
+				           <h1 class="media-title">Title</h1>
+				           <div class="row">
+				               <h2 class="media-meta">
+				                       <span class="media-artist">Artist</span>
+				                       <div class="tipbox">
+				                           <span class="tip">Tip</span>
+				                           <span class="share"><img src="./svg/share.svg"</span>
+				                       </div>
+				                   </h2>
+				           </div>
+				           <div class="row format-selector">
+				               <button class="active">mp3</button>
+				               <button>flac</button>
+				           </div>
+				
+				           <ul class="release-info">
+				               <li class="ri-publisher">publisher</li>
+				               <li class="ri-btc-address">BTC address</li>
+				               <li>Published <span class="ri-date">October 10, 2015</span></li>
+				               <li class="ri-track-count"><span class="ri-audio-count">0</span> Audio Track</li>
+				               <li class="ri-runtime">runtime</li>
+				               <li class="ri-xfile-container"><span class="ri-xfile-count">2</span> extra files</li>
+				           </ul>
+				
+				           <div class="pwwy-stuff">
+				               <div class="pwyw-close"></div>
+				               <div class="pwyw-container pwyw-activate-pin">
+				                   <i class="pwyw-pin-pretext">currently there are</i>
+				                   <div class="pwyw-pining-info pwyw-suggest">
+				                       <span class="pwyw-currently-pining">497</span> users pining this file
+				                   </div>
+				                   <div class="pwyw-pining-suggestion">
+				                       if you pin it, you can play the song for free!
+				                   </div>
+				                   <span class="pwyw-pining-suggest pwyw-suggest">
+				                       $<span class="pwyw-pin-price pwyw-suggested-price">0.00</span> per play
+				                   </span>
+				                   <span class="pwyw-pining-error"></span>
+				                   <button class="pwyw-pin-it">Pin It!</button>
+				               </div>
+				               <div class="pwyw-container pwyw-activate-download">
+				                   <div class="pwyw-paybox">
+				                       <div class="pwyw-payinfo">
+				                           The suggested price is:
+				                           <span class="pwyw-suggest">
+				                               $<span class="pwyw-price-suggest-download pwyw-suggested-price">suggest-dl</span> to buy
+				                           </span>
+				                           <br>
+				                           <span>
+				                               $
+				<input class="pwyw-usd-price-input pwyw-usd-download-price-input" maxlength="4"> USD
+				                           </span>
+				                           <div class="pwyw-somespace"></div>
+				                       </div>
+				                   </div>
+				                   <div class="pwyw-footer">
+				                       <span class="pwyw-btc-download-price">dl-price</span> BTC to<br>
+				                       <div class="pwyw-qrcode">
+				                           <img src="" />
+				                       </div>
+				                       <span class="pwyw-btc-address">                            </span>
+				                   </div>
+				               </div>
+				               <div class="pwyw-container pwyw-activate-play">
+				                   <div class="pwyw-paybox">
+				                       <div class="pwyw-payinfo">
+				                           The suggested price is:
+				                           <span class="pwyw-suggest">
+				                               $<span class="pwyw-price-suggest-play pwyw-suggested-price">suggest-play</span> to play
+				                           </span>
+				                           <br>
+				                           <span>
+				                               $
+				<input class="pwyw-usd-price-input pwyw-usd-play-price-input" maxlength="4"> USD
+				                           </span>
+				                           <div class="pwyw-somespace"></div>
+				                       </div>
+				                   </div>
+				                   <div class="pwyw-footer">
+				                       <span class="pwyw-btc-play-price">play-price</span> BTC to
+				                       <div class="pwyw-qrcode">
+				                           <img src="http://www.wired.com/images_blogs/magazine/2013/04/qrcode_f.jpg" />
+				                       </div>
+				                       <span class="pwyw-btc-address">1CvDLWNzX4PEkzMU7t2pVGsT858pMiNorQ
+				                       </span>
+				                   </div>
+				               </div>
+				           </div>
+				           <div class="buybox">
+				               <ul class="pwyw-list">
+				                   <li class="pwyw-item pwyw-action-play">
+				                       <img class="button-svg" src="svg/paywall-play.svg" />
+				                       <span class="price">
+				                           $<span class="pwyw-price-play">play-price</span> to Play
+				                       </span>
+				                   </li>
+				                   <li class="pwyw-item pwyw-action-download">
+				                       <img class="button-svg" src="svg/paywall-download.svg" />
+				                       <span class="price">
+				                           $<span class="pwyw-price-download">dl-price</span> to Buy</span>
+				                   </li>
+				                   <li class="pwyw-item pwyw-action-pin">
+				                       <img class="button-svg" src="svg/paywall-pin.svg" />
+				                       <span class="price price-pin">
+				                               Pin to Play
+				                           </span>
+				                   </li>
+				               </ul>
+				           </div>
+				           <div class="media-data" style="display: none">
+				               <ul>
+				                   <li class="md-title">title</li>
+				                   <li class="md-tracks">title</li>
+				               </ul>
+				           </div>
+				           <div id="audio-player" class="jp-player"></div>
+				           <div id="playbar-container" class="jp-audio playbar" role="application" aria-label="media player">
+				               <div class="jp-type-single">
+				                   <div class="jp-gui jp-interface">
+				                       <div class="jp-controls-holder">
+				                           <div class="jp-controls">
+				                               <button class="jp-play" role="button" tabindex="0"></button>
+				                               <button class="jp-stop" role="button" tabindex="0"></button>
+				                           </div>
+				                           <div class="jp-current-time" role="timer" aria-label="time">&nbsp;</div>
+				                           <div class="jp-progress">
+				                               <div class="jp-seek-bar">
+				                                   <div class="jp-play-bar">
+				                                       <div class="jp-play-button"></div>
+				                                   </div>
+				                               </div>
+				                           </div>
+				                           <div class="jp-duration" role="timer" aria-label="duration">&nbsp;</div>
+				                           <div class="jp-toggles" style="display: none">
+				                               <button class="jp-repeat" role="button" tabindex="0">repeat</button>
+				                           </div>
+				                       </div>
+				                   </div>
+				                   <div class="jp-details">
+				                       <div class="jp-title" aria-label="title">&nbsp;</div>
+				                   </div>
+				                   <div class="jp-no-solution">
+				                       <span>Update Required</span>
+				                       To play the media you will need to either update your browser to a recent version or update your <a href="http://get.adobe.com/flashplayer/" target="_blank">Flash plugin</a>.
+				                   </div>
+				               </div>
+				               <div class="playbar-shadow">
+				                   <h2>
+				                       You need to pay the artist or pin the file/album in order to play this track !
+				                   </h2>
+				               </div>
+				           </div>
+				       </div>
+				       <div class="media-cover">
+				           <img src="img/cover_placeholder.jpg" />
+				       </div>
+				   </div>
+				   <div class="bottom">
+				       <div class="playlist">
+				           <table class="playlist-table">
+				               <thead>
+				               <tr>
+				                   <th>#</th>
+				                   <th>Name</th>
+				                   <th>Artist</th>
+				                   <th>Time</th>
+				                   <th>Price/Play</th>
+				                   <th>Price/Buy</th>
+				               </tr>
+				               </thead>
+				               <tbody class="playlist-tracks">
+				                   <tr>
+				                       <td>1</td>
+				                       <td>Tiny Human</td>
+				                       <td>Imogen Heap</td>
+				                       <td>3:39</td>
+				                       <td>$<span class="price-play">0.0125</span></td>
+				                       <td>$<span class="price-download">1.00</span></td>
+				                   </tr>
+				                   <tr>
+				                       <td>2</td>
+				                       <td>Another Tiny Human</td>
+				                       <td>Imogen Heap</td>
+				                       <td>3:19</td>
+				                       <td><span>$0.0025</span></td>
+				                       <td><span>$0.040</span></td>
+				                   </tr>
+				               </tbody>
+				           </table>
+				       </div>
+						<div class="row embedcode">
+							<h3>Embed this Artifact</h3>
+							<pre class="iframecode"></pre>
+						</div>
+				   </div>
+				</div>
+				<div class="pwyw-overlay"></div>
+				
+			</div>
+		</main>
+		<iframe id="my_iframe" style="display:none;"></iframe>
 		
+		<!-- ABOUT VIEW -->
 		<main id="about">
 			<div class="wrapper">
 					<h2>Start with "Why?"</h2>
@@ -1066,16 +1279,6 @@
 					<div class="sectionSep"></div>
 					
 					<div class="row media-embed" id="video-embed"></div>
-					<!--
-					<div id="screensWrap">
-						<ul id="screenshots">
-							<li><img src="img/screens/Alexandria-Media-Browse-thumb.png" onclick="lightbox('img/screens/Alexandria-Media-Browse.png')"/></li>
-							<li><img src="img/screens/Alexandria-ApocalypseCA-thumb.png" onclick="lightbox('img/screens/Alexandria-ApocalypseCA.png')"/></li>
-							<li><img src="img/screens/Alexandria-Publisher-View-thumb.png" onclick="lightbox('img/screens/Alexandria-Publisher-View.png')"/></li>
-							<li><img src="img/screens/Alexandria-Wallet-thumb.png" onclick="lightbox('img/screens/Alexandria-Wallet.png')"/></li>
-						</ul>
-					</div>	
-					-->
 					<div class="sectionSep"></div>
 
 					<h2>How does it work?</h2>
@@ -1085,73 +1288,6 @@
 
 					<div class="sectionSep"></div>
 					
-					<h3>v0.5 Private Beta for Mac, Win & Linux</h3>
-					<ul>
-						<li>Distributed, persistent and unalterable library of art, history and culture</li>
-						<li>Media artifact publishing at low cost (~$0.01 currently)</li>
-						<li>Browse and search the entire library</li>
-						<li>Supported artifact types: Movies, Videos, Musics, Podcasts, Books, Documents, Things</li>
-						<li>In-app embedded and streaming artifacts</li>
-						<li>Share links to artifacts and publishers</li>
-						<li>Publisher choice to receive tips and use a "pay what you want" wall</li>
-						<li>In-app Bitcoin to Florincoin trade</li>
-						<li>APIs open-sourced on <a href="https://github.com/" target="_blank">GitHub</a></li>
-					</ul>
-											
-					<h3>v0.6 Open-Source Public Beta</h3>
-					<ul>
-						<li>Seed-as-a-Service (Librarian background app)</li>
-						<li>Crypto-Market-Historian (Librarian background app)</li>
-						<li>Library-Node (Librarian background app)</li>
-						<li>In-app IPFS file publishing</li>
-						<li>New artifact types: Recipes, Software, Games, Webpages</li>
-						<li>User purchase and tip history</li>
-						<li>Artifact comments via Florincoin tips</li>
-						<li>Free encrypted peer-to-peer messaging</li>
-						<li>First "Artifacts" app: San Francisco Bitcoin Meetup</li>
-						<li>All code open-sourced on GitHub with <a href="https://gnu.org/licenses/gpl.html" target="_blank">GPL license</a></li>
-					</ul>
-					
-					<h3>v0.7 Open-Source Public Beta</h3>
-					<ul>
-						<li><a href="https://www.raspberrypi.org/" target="_blank">Raspberry Pi</a> client (open source set-top box)</li>
-						<li>Android app</li>
-					</ul>
-					
-					<h3>v0.8 Open-Source Public Beta and Web Client:</h3>
-					<ul>
-						<li>Twitter-Historian (Librarian background app)</li>
-						<li>Browsable, searchable Tweet archives in Library</li>
-						<li>Subscribe to publishers to auto download and seed new artifacts</li>
-						<li>First web release at Alexandria.media and <a href="https://www.torproject.org/" target="_blank">TOR</a> hidden service</li>
-						<li>Users to seed while watching</li>
-						<li>"Publisher" app (streamlined, publisher-features-only)</li>
-					</ul>
-											
-					<h3>v0.9 Release Candidate:</h3>
-					<ul>
-						<li>Zero-knowledge web wallet</li>
-						<li><a href="https://www.indiegogo.com/projects/protip-peer-to-peer-tipping-for-the-web" target="_blank">ProTip</a> integration for subscription-based payments to publishers</li>
-						<li>iOS app</li>
-					</ul>
-
-					<h3>v1.0 The Distributed Library of Alexandria</h3>
-
-					<div class="sectionSep"></div>
-
-					<h2>The Alexandria Team</h2>
-					<ul class="noList">
-						<li><a href="https://onename.com/dread" target="_blank">Devon Read</a> - Project Management</li>
-						<li><a href="https://onename.com/copernicusmogley" target="_blank">Ryan Taylor</a> - Development</li>
-						<li><a href="https://onename.com/metacoin" target="_blank">Joey Fiscella</a> - Development</li>
-						<li><a href="https://keybase.io/xaiki" target="_blank">Niv Sardi</a> - Development</li>
-						<li><a href="https://keybase.io/ryanjordan" target="_blank">Ryan Jordan</a> - Design</li>
-						<li><a href="https://onename.com/alan_tran" target="_blank">Alan Tran</a> - Comm. &amp; Social Media</li>
-						<li>Loring Small - Engineering</li>
-						<li><a href="https://onename.com/joepeck" target="_blank">Joe Peck</a> - Legal</li>
-						<li><a href="https://onename.com/nathanstevens" target="_blank">Nathan Stevens</a> - Advising</li>
-					</ul>
-					<div class="sectionSep"></div>
 					<h3>Want to help with development or have some ideas you want to discuss? <br />We'd love to hear from you! <br /><a href="mailto:hello@blocktech.com">Contact</a> the team to get involved.</h3>
 				</div>
 				<!-- SUPPORT ALEXANDRIA -->
@@ -1162,7 +1298,8 @@
 				<p class="largeImg"><img src="img/libraryofalexandria.png" /></p>
 			</div>
 		</main>
-		
+
+		<!-- INFO MODALS -->		
 		<div id="info-modal-small" class="info-modal">
 			
 		</div>
@@ -1184,12 +1321,16 @@
 				</div>
 			</div>
 		</div>
+		
+		<!-- SHARE MODAL -->
 		<div id="share-modal" class="bubble-modal">
 			<h3>Share</h3>
 			<p><span id="share-title"></span></p>
 			<p id="share-url-wrap"><span id="share-url" onclick="selectText('share-url');" class="selectable"></span></p>
 			
 		</div>
+
+		<!-- TIP MODAL -->
 		<div id="tip-modal" class="bubble-modal">
 			<h3>Send a Tip</h3>
 			<ul class="tip-amounts">
@@ -1227,6 +1368,7 @@
 			</div>
 		</div>
 		
+		<!-- WALLET VIEW -->
 		<main id="wallet-view">
 			<div class="wrapper">
 				<div id="wallet-balance-wrap">
@@ -1252,6 +1394,7 @@
 							</div>
 							<div class="row full">
 								<div class="col">
+									<pre id="addressListOutput"></pre>
 									<pre id="identifierOutput"></pre>
 								</div>
 							</div>							
@@ -1284,11 +1427,6 @@
 									</div>
 								</div>
 							</div>
-							<div class="row full">
-								<div class="col">
-									<pre id="addressListOutput"></pre>
-								</div>
-							</div>
 						</div>
 					</div>
 				</div>
@@ -1302,6 +1440,16 @@
 					</div>
 					<div class="container">
 						<div class="tbl">
+							<div class="row full">
+								<div class="col">
+									<label>From:</label>
+								</div>
+								<div class="col">
+									<div id="wallet-from-address">
+										<select id="wallet-from-address-select" disabled="disabled"></select>
+									</div>
+								</div>
+							</div>
 							<div class="row full">
 								<div class="col">
 									<label>To:</label>
@@ -1345,15 +1493,17 @@
 			</div>
 		</main>
 
+		<!-- WALLET AUTH MODAL -->
 		<div id="wallet-auth-modal" class="overlay-modal">
 			<h3>Login to <span id="wallet-connect-currency"></span> Wallet</h3>
 			<input type="text" placeholder="Username" name="wallet-user" id="wallet-user" />
 			<input type="password" placeholder="Password" name="wallet-token" id="wallet-token" />
 			<div class="row">
-				<!-- <a href="http://florincoin.org" target="_blank" class="left btnLightGray">Download Wallet</a> --><a onclick="" id="wallet-connect-btn" class="btnLightGray">Connect</a>
+				<a onclick="" id="wallet-connect-btn" class="btnLightGray">Connect</a>
 			</div>
 		</div>
 		
+		<!-- NEW WALLET ADDRESS MODAL -->
 		<div id="new-address-modal" class="overlay-modal">
 			<h3>New Address</h3>
 			<div class="row full">
@@ -1364,6 +1514,7 @@
 			</div>
 		</div>
 		
+		<!-- DEACTIVATE MEDIA MODAL -->
 		<div id="deactivate-media-modal" class="overlay-modal">
 			<h3>Deactivate Media</h3>
 			<div class="tbl input-container">
@@ -1389,6 +1540,7 @@
 			</div>
 		</div>
 		
+		<!-- TIP ALEXANDRIA MODAL -->
 		<div id="tip-alexandria-modal" class="overlay-modal">
 			<h3>Would you like to include a tip to support Alexandria development?</h3>
 			<div class="input-container">
@@ -1399,7 +1551,7 @@
 			</div>
 		</div>
 
-		<!-- PAY-WHAT-YOU-WANT -->
+		<!-- OLD PAY-WHAT-YOU-WANT -->
 		<div id="pwyw-modal" class="overlay-modal">
 			<h3>Pay What You Want</h3>
 			<div class="tbl">
@@ -1446,11 +1598,11 @@
 			</div>
 		</div>
 
-		<!-- Application components -->
+		<!-- APP LAYOUT COMPONENTS -->
 
 		<footer id="footer">
 			<div class="left">
-				<div id="footer-title" onclick="resetAlexandria()">ΛLΞXΛNDRIΛ v0.5.1</div>
+				<div id="footer-title" onclick="resetAlexandria()">ΛLΞXΛNDRIΛ v0.5.5</div>
 		 		<div id="viewlabel">
 		 			<div id="alexandria-breadcrumbs"></div>
 				</div>
@@ -1493,7 +1645,6 @@
 		
 		<div id="loaded"></div>
 
-		<script src="vendor/jquery/dist/jquery.min.js"></script>
 		<script src="vendor/jquery-ui/jquery-ui.min.js"></script>
 
 		<script src="vendor/spin.js/spin.js"></script>
@@ -1510,8 +1661,10 @@
 <!-- 	App Initialization 	-->
 <!--	<script src="js/vendor/jquery.jsonrpcclient.js"></script> -->
 		<script src="app.js"></script>
+	    <script src="vendor/jplayer/dist/jplayer/jquery.jplayer.min.js "></script>
 		<script src="js/search.js"></script>
 		<script src="js/main.js"></script>
+		<script src="js/media.js"></script>
 <!--		<script src="streamer.js"></script> -->
 		
 	</body>

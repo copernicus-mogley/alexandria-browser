@@ -2,7 +2,6 @@
     display: none;
 }
 .container {
-    width: 60%;
     margin: 0px auto;
 }
 
@@ -36,7 +35,9 @@
     text-align: left;
 }
 
-.format-selector {}
+.format-selector {
+	display: none;
+}
 
 .format-selector button {
     text-transform: uppercase;
@@ -141,7 +142,9 @@
 	-webkit-justify-content: space-around;
     justify-content: space-around;
 }
-
+.buybox {
+	margin-bottom: 1em;
+}
 .pwyw-item {
 	display: -webkit-flex;
     display: flex;

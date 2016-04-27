@@ -2,9 +2,12 @@ var filetype = 'mp3';
 var day_avg = false;
 var delay = 5000;
 var keepHash;
+var URL_RECV = apiProtocol+"//localhost:11306/payproc/api/receive";
+var URL_GETRECVD = apiProtocol+"//localhost:11306/payproc/api/getreceivedbyaddress/";
 
 window.doMountMediaBrowser = function (el, data) {
-    console.log (el, data)
+    console.log (el, data);
+    $('.media-cover img').attr('src','');
     return mountMediaBrowser(el, data);
 }
 
@@ -27,7 +30,7 @@ function fixDataMess(data) {
         
         j = 'track' + formatInt (i++, 2);
     }
-
+    
     return ret;
 }
 
@@ -40,18 +43,23 @@ function prettifyTrack (track, xinfo) {
 }
 
 function renderPlaylistTracksHTML (tracks, prices, xinfo, el) {
+	console.info(tracks.length);
     el.empty();
     var i = 1;
     var price = {
         play: prices.play.suggested?prices.play.suggested:"FREE!",
         download: prices.download.suggested?prices.download.suggested:"FREE!"
     }
+    var trackTime = secondsToPrettyString(xinfo.runtime, true);
+    if (tracks.length > 1) {
+    	trackTime = '';
+    }
     tracks.forEach (function (track) {
         var name = prettifyTrack(track, xinfo)
         el.append("<tr><td>" + i++ + "</td>" +
                   "<td>" + name + "</td>" +
                   "<td>" + xinfo.artist +"</td>" +
-                  "<td>" + secondsToPrettyString(xinfo.runtime, true) + "</td>" +
+                  "<td>" + trackTime + "</td>" +
                   "<td><span class=\"price\">$<span class=\"price tb-price-play\">" + price.play + "</span></span></td>" +
                   "<td><span class=\"price\">$<span class=\"price tb-price-download\"><span>" + price.download + "</span></span></td>" +
                   "</tr>");
@@ -75,6 +83,16 @@ function renderPlaylistTracksHTML (tracks, prices, xinfo, el) {
         el.addClass('selected');
     })
     console.log (el, tracks);
+    if (!xinfo.pwyw) {
+        togglePlaybarShadow(true);
+        var freePlayTimer = setTimeout("autoPlayFree()", 500);
+    } else {
+        togglePlaybarShadow(false);
+    }
+}
+
+function autoPlayFree() {
+	$('.playlist-tracks tr:first').click();
 }
 
 function secondsToPrettyString (s, short){
@@ -85,14 +103,15 @@ function secondsToPrettyString (s, short){
 }
 
 function getPrices (pwyw) {
+
     if (! pwyw) {
         return  {
             play: {
-                suggested: 0.0125,
+                suggested: 0,
                 min: 0
             },
             download: {
-                suggested: 1,
+                suggested: 0,
                 min: 0
             }
         }
@@ -115,9 +134,7 @@ function getPrices (pwyw) {
 
 function togglePlaybarShadow (bool) {
     $('.playbar-shadow').toggleClass('hidden', bool);
-    if (bool) {
-        $('#audio-player').jPlayer("play");
-    }
+	$('.buybox').toggleClass('hidden', bool);
 }
 
 function applyMediaData(data) {
@@ -134,10 +151,6 @@ function applyMediaData(data) {
 
     var prices = getPrices (xinfo.pwyw)
 
-    if (!xinfo.pwyw) {
-        togglePlaybarShadow(false);
-    }
-
     mediaDataSel.data(media)
 
     $('.pwyw-price-play').text (prices.play.suggested)
@@ -152,17 +165,45 @@ function applyMediaData(data) {
     $('.ri-publisher', releaseInfoSel).text (media.publisher);
     $('.ri-btc-address', releaseInfoSel).text (xinfo['Bitcoin Address']);
 
-    $('.media-cover img').attr('src', IPFSUrl ([ipfsAddr,  xinfo.coverArt]));
+	if (xinfo.coverArt) {
+    	$('.playbar-shadow').css('width','initial');
+	    $('.media-cover img').attr('src', IPFSUrl ([ipfsAddr,  xinfo.coverArt]));
+		$('.media-cover').show();
+	} else {
+    	$('.playbar-shadow').css('width','100%');
+	}
     renderPlaylistTracksHTML(tracks, prices, xinfo, $('.playlist-tracks'))
 
     keepHash = media.torrent;
 
     console.log (media, tracks);
-    
+
     $('.ri-date').text(moment(media.timestamp).format('MMMM Do YYYY'));
+
+    watchForPin (ipfsAddr, xinfo.filename)
     //             debugger;
 
     return media;
+}
+
+function watchForPin (addr, filename) {
+    if (window.pinWatcher)
+        clearInterval (window.pinWatcher)
+
+    var pinningSel = $('.pwyw-currently-pinning');
+    window.pinWatcher = setInterval (function () {
+        $.ajax ({
+            // XXX(xaiki): hardcoded Tiny Human.mp3
+            url: window.librarianHost + '/api/ipfs/dht/findprovs/' + 'QmRb23uqmA3uJRUoDkRyG3qXvTpSV5a4zwe6yjJRsLZvAm'
+        })
+            .done(function (data) {
+                var count = data.output.split('error:')[0].split(' ').length;
+                pinningSel.text(count)
+            })
+            .fail(function () {
+
+            })
+    }, 2000)
 }
 
 function IPFSUrl (components) {
@@ -203,6 +244,9 @@ function showPaymentOption(e) {
 }
 
 function mountMediaBrowser(el, data) {
+	var mediaPublisher = data[0]['publisher-name'];
+	var mediaID = data[0]['txid'];
+	var data = data[0]['media-data'];
     $(el).html($('#media-template').html())
     var mediaData = applyMediaData(data)
     getUSDdayAvg();
@@ -245,7 +289,7 @@ function mountMediaBrowser(el, data) {
     });
     $('.pwyw-pin-it').on('click', function (e) {
         $.ajax({
-            url: "http://localhost:8079/api/ipfs/pin/add/" + keepHash
+            url: apiProtocol+"//localhost:8079/api/ipfs/pin/add/" + keepHash
         })
         .done(function (data) {
             if (data.status == "ok") {
@@ -272,6 +316,17 @@ function mountMediaBrowser(el, data) {
         $('.format-selector button').removeClass('active');
         $(this).addClass('active')
     })
+	// MAKE HISTORY ARTIFACT VIEW
+	var stateObj = {
+		currentView: 'artifact',
+		searchResults: false,
+		subView: mediaID,
+		artifactTitle: mediaData.info.title,
+		mediaType: mediaData.type,
+		artifactPublisher: mediaPublisher,
+		publisherId: mediaData.publisher
+	}
+	makeHistory(stateObj, 'ΛLΞXΛNDRIΛ > Media > ' + stateObj.mediaType.charAt(0).toUpperCase() + stateObj.mediaType.slice(1) + ' > ' + stateObj.artifactTitle);    
 }
 
 function USDTouBTC (amount) {
@@ -282,11 +337,18 @@ function USDToBTC (amount) {
     return Math.round((Number(amount)/day_avg).toString().substring(0, 16)*100000000)/100000000
 }
 
+function BTCtoUSD (amount) {
+    return Math.round((Number(amount)*day_avg).toString().substring(0, 16)*100)/100
+}
+
 function loadTrack (name, url) {
     $('#audio-player').jPlayer("setMedia", {
         title: name,
         mp3: url
-    })
+    });
+    if ($('.playbar-shadow:visible').length == 0) {
+	    $('#audio-player').jPlayer("play");
+    }
 }
 
 function togglePWYWOverlay (bool) {
@@ -312,13 +374,14 @@ function onPaymentDone (action, media) {
         togglePlaybarShadow(true);
     }
 
-    var res = loadTrack (xinfo.filename, url)
+    var res = loadTrack (xinfo.filename, url);
+    $('#audio-player').jPlayer("play");
 
     if (action === 'download') {
         document.getElementById('my_iframe').src = url;
     }
 
-    console.log ('player', res, IPFSUrl ([xinfo['DHT Hash'], xinfo.filename]))
+    console.log ('player', res, IPFSUrl ([xinfo['DHT Hash'], xinfo.filename]));
 }
 
 var lastAddress;
@@ -326,14 +389,21 @@ var lastAddress;
 function makePaymentToAddress(address, amount, done) {
     resetQR();
     togglePlaybarShadow(false);
+    var amountInBTC = USDToBTC(amount);
+    var params = { address: address, amount: amountInBTC };
+
     $.ajax({
-        url: "https://blockchain.info/api/receive?method=create&address=" + address
+        url: URL_RECV,
+        data: params
     })
-        .done(function (data) {
+        .done(function (data, textStatus, jqXHR) {
             console.log(data.input_address);
             lastAddress = data.input_address;
             setQR(data.input_address, USDToBTC(amount));
             watchForpayment(data.input_address, amount, done);
+        })
+        .fail(function (jqXHR, textStatus, errorThrown) {
+            console.error(textStatus);
         });
 
     return USDToBTC(amount);
@@ -356,7 +426,7 @@ function watchForpayment(address, amount, done) {
     }
 
     $.ajax({
-        url: "https://blockchain.info/q/getreceivedbyaddress/" + address
+        url: URL_GETRECVD + address
     })
         .done(function (data) {
             if (!day_avg) {
@@ -368,7 +438,7 @@ function watchForpayment(address, amount, done) {
                 }, delay);
                 return false;
             }
-            var amountpaid = USDToBTC(data)
+            var amountpaid = BTCtoUSD(data)  // data is expected to be BTC...for now
             console.log(amountpaid);
             var amountRequired = amount;
             if (amountpaid < amountRequired) {
@@ -384,7 +454,7 @@ function watchForpayment(address, amount, done) {
 
             console.log('payed.');
             togglePlaybarShadow(true);
-            done(amountpaid)
+            done(amountpaid);
         });
 }
 
@@ -397,7 +467,7 @@ function resetQR() {
 
 function setQR(address, amount) {
     if (amount) {
-        var url = "http://api.qrserver.com/v1/create-qr-code/?size=300x300&data=bitcoin:" + address + "?amount=" + amount;
+        var url = apiProtocol+"//api.qrserver.com/v1/create-qr-code/?size=300x300&data=bitcoin:" + address + "?amount=" + amount;
         $('.pwyw-qrcode img').attr("src", url);
     
         $('.pwyw-btc-address').text(address);

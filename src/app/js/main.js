@@ -6,6 +6,7 @@ var serverAddress = 'libraryd.alexandria.io'; // Dev
 var IPFSserver = 'ipfs.alexandria.io';
 // var IPFSserver = 'localhost:8080';
 
+var apiProtocol = 'https:';
 
 if (location.protocol == 'app:') {
 	var bitcoin = require('bitcoin');
@@ -16,7 +17,11 @@ if (location.protocol == 'app:') {
 	$('.webOnly').css('display','inline-block');
 	$('.appOnly').remove();
 	var wallet;
+	if (location.protocol == 'http:') {
+		apiProtocol == location.protocol;
+	}
 }
+
 
 var prevTipAmount = '';
 var fadeTimer = 200;
@@ -208,6 +213,7 @@ jQuery(document).ready(function($){
 			$('#IPFS-switch').text('IPFS: Local');
 		}
 		$('#IPFS-switch').click(function(){
+			$('#audio-player').jPlayer("stop");
 			if(IPFSserver == 'ipfs.alexandria.io'){
 				IPFSserver = 'localhost:8080';
 				$('#IPFS-switch').text('IPFS: Local');
@@ -427,7 +433,14 @@ function router (event, goUrl) {
     	} else if (paths[1].length == 64) {
 			var searchResults = searchAPI('publisher', 'txid', paths[1]);
 			if (!searchResults) {
-				loadArtifactView(paths[1]);
+				var thisMediaData = searchAPI('media', 'txid', paths[1]);
+				var mediaType = thisMediaData[0]['media-data']['alexandria-media']['type'];
+				console.info(mediaType);
+				if (mediaType == 'music') {
+					loadArtifactView2(paths[1]);
+				} else {
+					loadArtifactView(paths[1]);
+				}
 			} else {
 				loadPublisherView(paths[1]);
 			}
@@ -459,8 +472,7 @@ function getCryptos() {
 	cryptoTimerRunning = 0;
 // Alexandria Crytpo Price
 	$.ajax({
-		url: 'http://colorcoin.org:41290/flo-market-data/v1/getAll',
-//		url: 'http://localhost:41290/flo-market-data/v1/getAll',
+		url: apiProtocol+'//colorcoin.org:41290/flo-market-data/v1/getAll',
 		success: function(e) {
 			console.info(e);
 			var data = $.parseJSON(e);
@@ -483,7 +495,7 @@ function getCryptos() {
 	});
 // Bitcoin
 	$.ajax({
-	    url: 'https://api.bitcoinaverage.com/ticker/global/USD/',
+	    url: apiProtocol+'//api.bitcoinaverage.com/ticker/global/USD/',
 	    success: function(e) {
 			console.info(e);
 			BTCUSD = parseFloat(e.last);
@@ -537,7 +549,7 @@ function getAllPublishers() {
 	$('.view-publishers-ui').hide();
 	console.log('loadRecentMedia() publisher/get/all ...');
 	$.ajax({
-		url: 'http://'+serverAddress+':41289/alexandria/v1/publisher/get/all',
+		url: apiProtocol+'//'+serverAddress+':41289/alexandria/v1/publisher/get/all',
 		success: function (e) {
 			var data = $.parseJSON(e);
 			console.info(data);
@@ -611,7 +623,7 @@ function loadPublisherView(objMeta) {
 	var publisherMD5;
 	if (thisPublisher['emailmd5'] != '') {
 		publisherMD5 = thisPublisher['emailmd5'];
-		document.getElementById('publisher-avatar').src = 'http://www.gravatar.com/avatar/'+publisherMD5;
+		document.getElementById('publisher-avatar').src = apiProtocol+'//www.gravatar.com/avatar/'+publisherMD5;
 		document.getElementById('publisher-avatar').style.display = 'block';
 	} else {
 		document.getElementById('publisher-avatar').style.display = 'none';
@@ -708,13 +720,17 @@ function loadMediaEntity(obj) {
   */
 	} else {
 		// Load Media Entity View
-		loadArtifactView(parentObj);
+		if (mediaType == 'music') {
+			loadArtifactView2(parentObj);
+		} else {
+			loadArtifactView(parentObj);
+		}
 	}
 }
 
 function IPFS (cmd, args) {
 	args = args?('?' + Object.keys(args).map(function (k) { return k + '=' + args[k]}).join('&')):'';
-	return getJSON('http://localhost:5001/api/v0/' + cmd + args)
+	return getJSON(apiProtocol+'//localhost:5001/api/v0/' + cmd + args)
 }
 
 function getJSON (url) {
@@ -725,7 +741,45 @@ function getJSON (url) {
 	}));
 }
 
+// v0.6 LOAD ARTIFACT VIEW
+function loadArtifactView2(objMeta) {
+	// HIDE OTHER VIEWS
+	document.getElementById('intro').style.display = 'none';
+	$('main').hide();
+	hideOverlay();
+	resetInterface();
+	document.getElementById('search').style.display = 'block';
+	$('.wallet-ui').hide();
+	$('.publisher-ui').hide();
+	$('.sharing-ui').hide();
+	$('.view-publishers-ui').hide();
+	$('#view-media .entity-view').hide();
+	// SHOW MEDIA VIEW
+	document.getElementById('view-artifact').style.display = 'block';
+	var mediaID = '';
+	// GET MEDIA ID FROM objMeta
+	if ( (objMeta) && (objMeta.length == 1) ) {
+		mediaID = $(objMeta).attr('id').split('-')[1];
+	// GET MEDIA ID FROM LOCATION
+	} else if (!objMeta) {
+		if (location.hash.slice(1).split('/')[2]) {
+			mediaID = location.hash.slice(1).split('/')[2];
+		} else {
+			mediaID = location.hash.slice(1).split('/')[1];
+		}
+	} else {
+		mediaID = objMeta;
+	}
+	// GET ALL THE MEDIA DATA
+	var thisMediaData = searchAPI('media', 'txid', mediaID);
+    console.log (mediaID, thisMediaData);
+	$('.media-cover').hide();
+    window.doMountMediaBrowser('#media-browser', thisMediaData);
+}
+
+// v0.5.1 LOAD ARTIFACT VIEW
 function loadArtifactView(objMeta) {
+	// THING AND VIDEO SPECIFIC SOMETHING
 	function showMedia (mediaType){
 		if (mediaType == 'thing') {
 			if(mediaInfo['extra-info']) {
@@ -734,6 +788,7 @@ function loadArtifactView(objMeta) {
 				}
 			}
 		}
+		// VIDEO POSTER FRAME
 		if ( (mediaType == 'video') && (wwwId != '') ) {
 			if (!posterFrame) {
 				var url = 'https://www.googleapis.com/youtube/v3/videos?key=AIzaSyBH_FceJKLSmo0hk9y2zBdZ8ZTmUiNJr8o&part=snippet&id='+ wwwId;
@@ -755,12 +810,15 @@ function loadArtifactView(objMeta) {
 				});
 			}
 		}
+		// GET FILE EMBED
 		var fileEmbed = embedArtifact(mediaType, fileHash, mediaFilename, posterFrame);
 		$('.row.media-embed').html(fileEmbed);
+		// IN APP DOWNLOAD LINK
 		if (location.protocol == 'app:') {
-			$('#media-Tid').attr('onclick', 'copyArtifact("http://' + IPFSserver + 'ipfs/'+ fileHash + '","'+process.env.HOME+'/Alexandria-Downloads/'+ fileHash + '")').show();
+			$('#media-Tid').attr('onclick', 'copyArtifact("'+apiProtocol+'//' + IPFSserver + 'ipfs/'+ fileHash + '","'+process.env.HOME+'/Alexandria-Downloads/'+ fileHash + '")').show();
 		}
 	}
+	// HIDE OTHER VIEWS
 	document.getElementById('intro').style.display = 'none';
 	$('main').hide();
 	hideOverlay();
@@ -771,12 +829,15 @@ function loadArtifactView(objMeta) {
 	$('.sharing-ui').hide();
 	$('.view-publishers-ui').hide();
 	$('#view-media .entity-view').hide();
+	// SHOW MEDIA VIEW
 	document.getElementById('view-media').style.display = 'block';
 	$('.row.media-embed').html('');
 	$('#media-Tid').attr('href','').hide();
 	var mediaID = '';
+	// GET MEDIA ID FROM objMeta
 	if ( (objMeta) && (objMeta.length == 1) ) {
 		mediaID = $(objMeta).attr('id').split('-')[1];
+	// GET MEDIA ID FROM LOCATION
 	} else if (!objMeta) {
 		if (location.hash.slice(1).split('/')[2]) {
 			mediaID = location.hash.slice(1).split('/')[2];
@@ -786,11 +847,13 @@ function loadArtifactView(objMeta) {
 	} else {
 		mediaID = objMeta;
 	}
+	// GET ALL THE MEDIA DATA
 	var thisMediaData = searchAPI('media', 'txid', mediaID);
 	console.info(thisMediaData);
 	mediaID = thisMediaData[0]['txid'];
 	var mediaPublisher = thisMediaData[0]['publisher-name'];
 	var publisherID = thisMediaData[0]['media-data']['alexandria-media']['publisher'];
+	// GENERATE QR CODE FOR FLO TIPS
 	generateQR(publisherID, 'tip-QR', 100, 100, 'florincoin');
 	if (document.getElementById('sendTipBtn')) {
 		document.getElementById('sendTipBtn').setAttribute('onclick','sendTip(this, FLOclient, "' + publisherID + '", "FLO")');
@@ -818,6 +881,7 @@ function loadArtifactView(objMeta) {
 	if ( (!mediaPymnt) || (mediaPymnt == 'none') ) {
 		$('#view-media .tip-icon').hide();
 	}
+	// DISPLAY TIP JAR
 	if ((mediaPymnt) && (mediaPymnt.type == 'tip')) {
 		$('#view-media .tip-icon').show();
 		$('.tip-amounts li').remove();
@@ -831,6 +895,7 @@ function loadArtifactView(objMeta) {
 	}
 
 	var fileHash = mediaTid;
+	// EXTRA INFO
 	if(mediaInfo['extra-info']){
 		var xinfo = mediaInfo['extra-info'];
 		if(xinfo.runtime){
@@ -843,13 +908,13 @@ function loadArtifactView(objMeta) {
 			mediaFilename = xinfo.filename;
 		}
 		if(xinfo.poster) {
-			var poster = 'http://' + IPFSserver + '/ipfs/'+ fileHash +'/'+ xinfo.poster;
+			var poster = apiProtocol+'//' + IPFSserver + '/ipfs/'+ fileHash +'/'+ xinfo.poster;
 		}
 		if(xinfo.posterFrame) {
-			var posterFrame = 'http://' + IPFSserver + '/ipfs/'+ fileHash +'/'+ xinfo.posterFrame;
+			var posterFrame = apiProtocol+'//' + IPFSserver + '/ipfs/'+ fileHash +'/'+ xinfo.posterFrame;
 		}		
 		if(xinfo.trailer) {
-			var trailer = 'http://' + IPFSserver + '/ipfs/'+ fileHash +'/'+ xinfo.trailer;
+			var trailer = apiProtocol+'//' + IPFSserver + '/ipfs/'+ fileHash +'/'+ xinfo.trailer;
 		}
 		if(xinfo.wwwId) {
 			wwwId = xinfo.wwwId;
@@ -857,6 +922,7 @@ function loadArtifactView(objMeta) {
 		if(xinfo['Bitcoin Address']) {
 			var mediaBTC = xinfo['Bitcoin Address'];
 		}
+		// SHOW/HIDE TRAILER LINK
 		if (trailer) {
 			$('#trailer-link').attr('data-source',trailer).show();
 		} else {
@@ -898,9 +964,11 @@ function loadArtifactView(objMeta) {
 			showMedia(mediaType);
 		}
 	}
+	// ROTTEN TOMATOES FOR MOVIES
 	if (mediaType == 'movie') {
 		getRotten();
 	}
+	// SHOW AND BUILD MEDIA UI
 	$('.view-media-ui').show();
 	document.getElementById('viewlabel').style.display = 'inline-block';
 	$('#media-txnID').html(mediaID);	
@@ -916,17 +984,17 @@ function loadArtifactView(objMeta) {
 	if (mediaArtist) {
 		document.getElementById('media-artist-name').outerHTML = '<h3 id="media-artist-name" onclick="searchByField(&apos;media&apos;, &apos;info_extra&apos;, &apos;'+ mediaArtist +'&apos;)">'+ mediaArtist +'</h3>';
 	}
-//	$('#media-view-entity .entity-meta-header .entity-runtime').css('display',$(objMeta).find('.media-runtime').css('display'));
 	document.getElementById('entity-runtime').innerHTML = mediaRuntime;
 	$('#media-view-entity .entity-meta-header .media-header').hide();
 	$('#media-view-entity .entity-meta-header .media-header.media-'+mediaType).show();
 	// $('#media-view-entity .media-image').html(mediaIcon);
 	$('#media-view-entity .entity-pub-time span').html(mediaPubTime);
+	// POSTER FRAME
 	if (poster) {
-//		mediaDesc = '<img src="http://localhost:8080/stream/'+ fileHash +'/'+ mediaInfo['extra-info']['poster'] +'" class="media-poster" />'+ mediaDesc;
 		mediaDesc = '<img src="'+poster+'" class="media-poster" />'+ mediaDesc;
 	}
 	$('#media-view-entity .media-desc').html('<p>'+ mediaDesc +'</p>');
+	// IF MUSIC THEN GET TRACKS
 	if (mediaType == 'music') {
 		getTracks(mediaTid, mediaInfo, 2);
 	}
@@ -942,9 +1010,11 @@ function loadArtifactView(objMeta) {
 		artifactPublisher: mediaPublisher,
 		publisherId: publisherID
 	}
+	// MAKE HISTORY ARTIFACT VIEW
 	makeHistory(stateObj, 'ΛLΞXΛNDRIΛ > Media > ' + stateObj.mediaType.charAt(0).toUpperCase() + stateObj.mediaType.slice(1) + ' > ' + stateObj.artifactTitle);
 }
 
+// GET ALBUM TRACKS
 function getTracks(fileHash, mediaInfo, trackCount) {
 	if (trackCount < 10) {
 		var trackNo = '0'+ trackCount;
@@ -968,6 +1038,7 @@ function getTracks(fileHash, mediaInfo, trackCount) {
 	}
 }
 
+// EMBED ARTIFACT FROM DHT
 function embedArtifact(mediaType, fileHash, mediaFilename, posterFrame) {
 	if (mediaFilename == 'none') {
 		mediaFilename = '';
@@ -979,29 +1050,30 @@ function embedArtifact(mediaType, fileHash, mediaFilename, posterFrame) {
 //		if (location.protocol == 'app:') {
 //			var embedCode = '<embed type="application/x-vlc-plugin" pluginspage="http://www.videolan.org" target="http://' + IPFSserver +'/ipfs/'+ fileHash +'/'+ encodeURIComponent(mediaFilename) +'" width="640px" height="360px" />';
 //		} else {
-			var embedCode = '<video controls="controls" poster="'+ posterFrame +'"><source src="http://' + IPFSserver +'/ipfs/'+ fileHash +'/'+ encodeURIComponent(mediaFilename) +'" type="video/mp4" /><param name="autoplay" value="true" /></video>';	
+			var embedCode = '<video controls="controls" poster="'+ posterFrame +'"><source src="'+apiProtocol+'//' + IPFSserver +'/ipfs/'+ fileHash +'/'+ encodeURIComponent(mediaFilename) +'" type="video/mp4" /><param name="autoplay" value="true" /></video>';	
 //		}
 	} else if ( (mediaType == 'music') || (mediaType == 'podcast') ) {
 // 		if (location.protocol == 'app:') {
 //			var embedCode = '<embed type="application/x-vlc-plugin" pluginspage="http://www.videolan.org" target="http://' + IPFSserver +'/ipfs/'+ fileHash +'/'+ encodeURIComponent(mediaFilename) +'" width="640px" height="100px" />';
 //		} else {
-			var embedCode = '<audio controls="controls"><source src="http://' + IPFSserver +'/ipfs/'+ fileHash +'/'+ encodeURIComponent(mediaFilename) +'" type="audio/mp3" /></audio>';
+			var embedCode = '<audio controls="controls"><source src="'+apiProtocol+'//' + IPFSserver +'/ipfs/'+ fileHash +'/'+ encodeURIComponent(mediaFilename) +'" type="audio/mp3" /></audio>';
 //		}
 	} else if (mediaType == 'book') {
-		var embedCode = '<object data="http://' + IPFSserver +'/ipfs/'+ fileHash + '" type="application/pdf" width="100%" height="800px" class="book-embed"><p>No PDF plugin installed. You can <a href="http://' + IPFSserver +'/ipfs/'+ fileHash +'">click here to download the PDF file.</a></p></object>'
+		var embedCode = '<object data="'+apiProtocol+'//' + IPFSserver +'/ipfs/'+ fileHash + '" type="application/pdf" width="100%" height="800px" class="book-embed"><p>No PDF plugin installed. You can <a href="'+apiProtocol+'//' + IPFSserver +'/ipfs/'+ fileHash +'">click here to download the PDF file.</a></p></object>'
 	} else if (mediaType == 'recipe') {
-		var embedCode = '<object data="http://' + IPFSserver +'/ipfs/'+fileHash+'" type="text/html" width="100%" height="620px" />';
+		var embedCode = '<object data="'+apiProtocol+'//' + IPFSserver +'/ipfs/'+fileHash+'" type="text/html" width="100%" height="620px" />';
 	} else if (mediaType == 'thing') {
-		var embedCode = '<img src="http://' + IPFSserver +'/ipfs/'+fileHash+'" class="large-poster" />';
+		var embedCode = '<img src="'+apiProtocol+'//' + IPFSserver +'/ipfs/'+fileHash+'" class="large-poster" />';
 	}
 	return embedCode;
 }
 
+// CHANGE AUDIO TRACK
 function changeAudioTrack(obj) {
 	var audioPlayer = $('audio:visible');
 	var fileHash = $('audio:visible source').attr('src').split('/')[4];
 	var trackFile = $(obj).text();
-	$('audio:visible source').attr('src', 'http://' + IPFSserver +'/ipfs/'+ fileHash +'/'+ encodeURIComponent(trackFile));
+	$('audio:visible source').attr('src', apiProtocol+'//' + IPFSserver +'/ipfs/'+ fileHash +'/'+ encodeURIComponent(trackFile));
 	audioPlayer.load();
 }
 
@@ -1145,6 +1217,7 @@ function searchByField(module, searchOn, searchFor) {
 	populateSearchResults(AdvSearchResults, module);
 }
 var resetSearch = 0;
+
 // MEDIA TYPE FILTER
 function setMediaTypeFilter(obj, resetSearch) {
 	var filterTypes = '';
@@ -1283,7 +1356,6 @@ function filterMediaByType(obj, resetSearch) {
 			}
 		}
 	}
-//	console.log(filteredMedia);
 	console.log(history.state);
 	populateSearchResults(filteredMedia, 'media');
 }
@@ -1294,7 +1366,6 @@ function populateSearchResults(results, module) {
 	if (module == 'publishers') {
 		module = 'publisher';
 	};
-//	console.info(results);
 	$('#'+module+'-results-title').remove();
 	if ( (module =='media') && (results) ) {
 		for (var i = 0; i < results.length; i++) {
@@ -1646,16 +1717,16 @@ function tradeModal() {
 	if ( (document.getElementById('trade-modal').style.display == 'none') || (document.getElementById('trade-modal').style.display == '') ) {
 		var floAddress = document.getElementById('wallet-address-select').value;
 		if (floAddress == '') {
-			alert('Please select a Florincoin address');
+			alert('Please select an address in Request Tokens section');
 		} else {
 			$.ajax({
-				url: 'http://trade.blocktech.com:5000/flobalance',
+				url: apiProtocol+'//trade.blocktech.com:5000/flobalance',
 				success: function(e) {
 					document.getElementById('trade-balance').innerHTML = Math.round((.5*e*(Math.round((FLOUSD/BTCUSD)*100000000)/100000000))*100000000)/100000000;
 				}
 			});
 			$.ajax({
-				url: 'http://tradebot.alexandria.io/depositaddress?floaddress='+floAddress,
+				url: apiProtocol+'//tradebot.alexandria.io/depositaddress?floaddress='+floAddress,
 				success: function(e) {
 					document.getElementById('trade-address').innerHTML = e;
 					document.getElementById('trade-modal').style.display = 'block';
@@ -1847,7 +1918,6 @@ function sendPublisherTxn(obj, client, pubAdd, queryString) {
 		    	$('#publisher-process input[type="text"]').val('');
 		    	alertModal(announcePubSVG+'<br />Publisher Announced!');
 				$(obj).removeClass('disabled');
-//				getBalance(obj, client);
 			}
 		});	
 	} else {
@@ -1898,7 +1968,7 @@ function showAutoFill(obj){
 function getIMDBinfo() {
 //	var IMDBid = document.getElementById('www-id').value;
 	var IMDBid = 'tt1273193';
-	var IMDBapi = 'http://www.myapifilms.com/imdb?idIMDB='+ mediaWwwID +'&actors=S&uniqueName=1';
+	var IMDBapi = apiProtocol+'//www.myapifilms.com/imdb?idIMDB='+ mediaWwwID +'&actors=S&uniqueName=1';
 	$.ajax({
 	    url: IMDBapi,
 //	    type: 'GET',
@@ -2029,7 +2099,7 @@ function getSoundcloudInfo() {
 // GET ROTTEN TOMATOES RATING
 function getRotten() {
 	var RottenID = parseInt(document.getElementById('movie-rotten').innerHTML);
-	var RottenAPI = 'http://api.rottentomatoes.com/api/public/v1.0/movies/'+ RottenID +'.json?apikey=uatf974sbyb7reyrstwnpmzu';
+	var RottenAPI = apiProtocol+'//api.rottentomatoes.com/api/public/v1.0/movies/'+ RottenID +'.json?apikey=uatf974sbyb7reyrstwnpmzu';
 	$.ajax({
 	    url: RottenAPI,
 	    type: 'GET',
@@ -2104,7 +2174,7 @@ function deactivateMedia(obj) {
 	var signature;
 	var stopError = 0;
 	$.ajax({
-	    url: 'http://'+ serverAddress +':41289/alexandria/v1/sign',
+	    url: apiProtocol+'//'+ serverAddress +':41289/alexandria/v1/sign',
 	    type: 'POST',
 		data: sigQueryString.toString(),
 	    success: function(e) {
@@ -2119,12 +2189,10 @@ function deactivateMedia(obj) {
 		error: function (xhr, ajaxOptions, thrownError) {
 			console.error(xhr.status);
 			console.error(thrownError);
-//				$(obj).removeClass('disabled');
 		},
 		async:   false
 	});
 	if (stopError == 1) {
-//			$(obj).removeClass('disabled');
 		signature = false;
 	}		
 
@@ -2147,7 +2215,7 @@ function deactivateMedia(obj) {
 	console.info(queryString);
 	if (window.confirm('Deactivate Artifact?')) { 
 		$.ajax({
-		    url: 'http://'+ serverAddress +':41289/alexandria/v1/send',
+		    url: apiProtocol+'//'+ serverAddress +':41289/alexandria/v1/send',
 		    type: 'POST',
 			data: queryString.toString(),
 		    success: function(e) {
@@ -2177,7 +2245,6 @@ function sendMediaTxn(obj, client, txid, queryString) {
 		    	resetAlexandria();
 		    	alert('Media Deactivated! TxId: ' + txid);
 				$(obj).removeClass('disabled');
-//				getBalance(obj, client);
 			}
 		});
 	} else {
@@ -2210,7 +2277,7 @@ function unlockPWYW(obj, currency) {
 
 
 		$('#pwyw-pin-error').text('');
-		request ("http://localhost:8079/api/ipfs/pin/add/" + fileHash, function (err, res, data) {
+		request (apiProtocol+"//localhost:8079/api/ipfs/pin/add/" + fileHash, function (err, res, data) {
 			if (err) {
 	            $('#pwyw-pin-error').text('You must have Librarian installed and running in order to use this feature.').show();
 				return;
@@ -2269,7 +2336,6 @@ function unlockPWYW(obj, currency) {
 				$('#media-Tid').attr('href','magnet:?xt=urn:'+fileHash+'&dn='+escape(mediaTitle)).show();
 				hideOverlay();
 				$(obj).removeClass('disabled');
-	//			getBalance(obj, client);
 			}
 		});
 	} else if (currency == 'BTC') {
@@ -2288,7 +2354,6 @@ function unlockPWYW(obj, currency) {
 				$('#media-Tid').attr('href','magnet:?xt=urn:'+fileHash+'&dn='+escape(mediaTitle)).show();
 				hideOverlay();
 				$(obj).removeClass('disabled');
-	//			getBalance(obj, client);
 			}
 		});
 	}
@@ -2496,7 +2561,7 @@ function postMedia(tipAlexandria) {
 		var signature;
 		var stopError = 0;
 		$.ajax({
-		    url: 'http://'+ serverAddress +':41289/alexandria/v1/sign',
+		    url: apiProtocol+'//'+ serverAddress +':41289/alexandria/v1/sign',
 		    type: 'POST',
 			data: sigQueryString.toString(),
 		    success: function(e) {
@@ -2511,12 +2576,10 @@ function postMedia(tipAlexandria) {
 			error: function (xhr, ajaxOptions, thrownError) {
 				console.error(xhr.status);
 				console.error(thrownError);
-//				$(obj).removeClass('disabled');
 			},
 			async:   false
 		});
 		if (stopError == 1) {
-//			$(obj).removeClass('disabled');
 			signature = false;
 		}		
 
@@ -2601,7 +2664,7 @@ function postMedia(tipAlexandria) {
 		var FLOAccount = $('#newMediaPublisherFLO option:selected').html();
 		if (window.confirm('Publish Artifact using '+ FLOAccount +' : '+ FLOadd +'?')) { 
 			$.ajax({
-			    url: 'http://'+ serverAddress +':41289/alexandria/v1/send',
+			    url: apiProtocol+'//'+ serverAddress +':41289/alexandria/v1/send',
 			    type: 'POST',
 				data: queryString.toString(),
 			    success: function(e) {
@@ -2647,7 +2710,6 @@ function resizeTabs(scroll, t) {
 }
 
 // ALERT MODAL
-
 function alertModal(alertText) {
 	var modalHTML = '<p>' + alertText + '</p><div><a onclick="hideOverlay()" class="btnLightGray">OK</a></div>';
 	
@@ -2697,7 +2759,7 @@ function loadAboutView() {
 	document.getElementById('search').style.display = 'block';
 	document.getElementById('about').style.display = 'block';
 	$('#about #video-embed video').remove();
-	$('#about #video-embed').append('<video controls="controls" poster="https://i.ytimg.com/vi/z_u-ndscZjY/hqdefault.jpg"><source src="http://' + IPFSserver +'/ipfs/QmUbsjbjkRu41JqiyAhq61inUpDSB8uMHsTkdtbHg2jYmv/" type="video/mp4"></video>');
+	$('#about #video-embed').append('<video controls="controls" poster="https://i.ytimg.com/vi/z_u-ndscZjY/hqdefault.jpg"><source src="'+apiProtocol+'//' + IPFSserver +'/ipfs/QmUbsjbjkRu41JqiyAhq61inUpDSB8uMHsTkdtbHg2jYmv/" type="video/mp4"></video>');
 	var stateObj = {
 		currentView: 'about'
 	}
@@ -2731,7 +2793,7 @@ function loadWalletView() {
 				document.getElementById('wallet-connect-currency').innerHTML = 'FloVault';
 				$('#wallet-connect-btn').attr('onclick','connectWallet(this, "FloVault")');
 				$('#wallet-user').attr('placeholder','Identifier');
-				$('#refreshBalance').attr('onclick','updateAddressList();');
+				$('#refreshBalance').attr('onclick','refreshFloVaultBalances();');
 				$("#newAddressBtn").attr('onclick','newFloVaultAddress()');
 				$("#sendFloBtn").attr('onclick','sendFloVault()');
 			}
@@ -2740,7 +2802,7 @@ function loadWalletView() {
 	}
 }
 
-// CONNECT TO FLORINCOIN WALLET
+// RPC CONNECT TO FLORINCOIN WALLET
 var FLOclient = {};
 var FLOauth = [];
 function connectWallet(obj, wallet) {
@@ -2778,7 +2840,7 @@ function connectWallet(obj, wallet) {
 	}
 }
 
-// CONNECT TO BITCOIN WALLET
+// RPC CONNECT TO BITCOIN WALLET
 var BTCclient = {};
 var BTCauth = [];
 function connectBTCWallet(obj) {
@@ -2811,10 +2873,9 @@ function connectBTCWallet(obj) {
 			console.info(balance);
 		}
 	});
-//	getBalance(obj, BTCclient);
 }
 
-// GET WALLET BALANCE
+// RPC WALLET BALANCE
 function getBalance(obj, client) {
 	document.getElementById('wallet-balance-flo').innerHTML = '';
 	document.getElementById('wallet-balance-amount').innerHTML = 'Updating ...'
@@ -2870,7 +2931,7 @@ function getBalance(obj, client) {
 	});
 }
 
-// GET WALLET ACCOUNTS
+// RPC WALLET ACCOUNTS
 var walletAccts = [];
 var addressCount = 0;
 function getWalletAccts(client) {
@@ -2889,6 +2950,7 @@ function getWalletAccts(client) {
 			console.info(walletAccts);
 			console.info(walletAccts.length);
 			document.getElementById('wallet-address-select').innerHTML = '<option value="">Select Address</option>';
+			document.getElementById('wallet-from-address-select').innerHTML = '<option value="">Select Address</option>';
 			document.getElementById('newPublisher-floAdd').innerHTML = '<option value="">Select Address</option>';
 			document.getElementById('newMediaPublisherFLO').innerHTML = '<option value="">Select Address</option>';
 			getWalletAddresses(client);
@@ -2896,7 +2958,7 @@ function getWalletAccts(client) {
 	});
 }
 
-// GET WALLET ADDRESSES
+// RPC WALLET ADDRESSES
 function getWalletAddresses(client) {
 	console.info(walletAccts);
 	for (var i = 0; i < walletAccts.length; i++) {
@@ -2908,6 +2970,7 @@ function getWalletAddresses(client) {
 			var acctLabel = walletAccts[addressCount];
 			for (var a = 0; a < address.length; a++) {
 				document.getElementById('wallet-address-select').innerHTML = document.getElementById('wallet-address-select').innerHTML + '<option value="'+address[a]+'">' + address[a] +'</option>';
+				document.getElementById('wallet-from-address-select').innerHTML = document.getElementById('wallet-from-address-select').innerHTML + '<option value="'+address[a]+'">' + address[a] +'</option>';
 				document.getElementById('newPublisher-floAdd').innerHTML = document.getElementById('newPublisher-floAdd').innerHTML + '<option value="'+address[a]+'">' + address[a] +'</option>';
 				document.getElementById('newMediaPublisherFLO').innerHTML = document.getElementById('newMediaPublisherFLO').innerHTML + '<option value="'+address[a]+'">' + address[a] +'</option>';
 			}
@@ -2918,6 +2981,7 @@ function getWalletAddresses(client) {
 	    if (document.getElementById('wallet-address-select').length > 1) {
 	        clearInterval(selectInterval);
 			document.getElementById('wallet-address-select').removeAttribute('disabled');
+			document.getElementById('wallet-from-address-select').removeAttribute('disabled');
 			document.getElementById('newPublisher-floAdd').removeAttribute('disabled');
 			document.getElementById('newMediaPublisherFLO').removeAttribute('disabled');
 			$('#newAddressBtn').removeClass('disabled');
@@ -2947,12 +3011,13 @@ function generateQR(address, wrapper, qrw, qrh, wallet) {
 	});
 }
 
+// NEW ADDRESS MODAL
 function displayNewAddModal() {
 	$('#new-address-modal').fadeIn(fadeTimer);
 	document.getElementById('app-overlay').style.display = 'block';
 }
 
-// GENERATE NEW FLORINCOIN ADDRESS
+// RPC GENERATE NEW FLORINCOIN ADDRESS
 function newFloAddress(obj, client) {
 	console.info(client);
 	if ($(obj).hasClass('disabled')) {
@@ -2973,7 +3038,7 @@ function newFloAddress(obj, client) {
 	});	
 }
 
-// SEND FLO
+// RPC SEND FLO
 function sendFLO(obj) {
 	if ($(obj).hasClass('disabled')) {
 		return false;
@@ -3028,7 +3093,6 @@ function resetInterface() {
 	document.getElementById('tip-comment').value = '';
 	document.getElementById('viewlabel').style.display = 'none';
 	document.getElementById('disabler').style.display = 'none';
-//	hideOverlay();
 	if (document.getElementById('intro').style.display == 'block') {
 		$('#intro').fadeOut(fadeTimer);
 	}
@@ -3086,11 +3150,12 @@ function clearModal() {
 	return false;
 }
 
+// QUIT
 function closeWindow() { 
 	gui.App.quit();
 } 
 
-// LIGHTBOX FUNCTION
+// LIGHTBOX
 function lightbox(obj){
 	var imgContent = $(obj).find('img').clone();
 	$('#lightbox').children().remove();
@@ -3115,6 +3180,7 @@ function lightbox(obj){
 	});
 }
 
+// LIGHTBOX FOR VIDEO
 function lightboxVideo(obj) {
 	var videoURL = $(obj).attr('data-source');
 	var videoContent = '<video controls="controls" poster=""><source src="'+videoURL+'" type="video/mp4" /><param name="autoplay" value="true" /></video>'
@@ -3228,6 +3294,7 @@ function replaceSVG() {
 		}, 'xml');
 	});
 }
+
 // SPINNER
 var largeSpinConfig = {
 	lines: 17, // The number of lines to draw
@@ -3338,12 +3405,14 @@ function goBack() {
 function makeHistory(stateObj, newTitle) {
 	console.info(stateObj);
 	navCounter++;
-	if ( ( (document.getElementById('browser-nav')) && (history.state) && (history.state.isFront) ) || (navCounter == 1) ) {
-		$('#browser-nav').remove();
-	} else {
-		resetInterface();
-		if (!document.getElementById('browser-nav')) {
-			$('#logo').after('<div id="browser-nav" class="nodrag"><a onclick="goBack()">Back</a></div>');
+	if (location.protocol == 'app:') {		
+		if ( ( (document.getElementById('browser-nav')) && (history.state) && (history.state.isFront) ) || (navCounter == 1) ) {
+			$('#browser-nav').remove();
+		} else {
+			resetInterface();
+			if (!document.getElementById('browser-nav')) {
+				$('#logo').after('<div id="browser-nav" class="nodrag"><a onclick="goBack()">Back</a></div>');
+			}
 		}
 	}
 	$('#viewlabel').children().hide();
@@ -3404,9 +3473,13 @@ function makeHistory(stateObj, newTitle) {
 	document.getElementById('viewlabel').style.display = 'inline-block';
 	document.title = newTitle;
 	history.pushState(stateObj, newTitle, newUrl);
+	// IFRAME EMBED CODE
+	var iframeEmbedCode = '<iframe src="'+ newUrl +'" width="800px" height="600px"></iframe>';
+	console.info(iframeEmbedCode);
+	$('.iframecode').text(iframeEmbedCode);
 }
 
-// Load Script
+// LOAD SCRIPT
 function loadScript(url, callback)
 {
     // Adding the script tag to the head as suggested before
@@ -3424,7 +3497,7 @@ function loadScript(url, callback)
     body.appendChild(script);
 }
 
-// FloVault
+// FLOVAULT INIT
 function FloVaultInit() {
 	loadScript('/js/SimpleWallet.js', SimpleWallet_loaded);
 }
@@ -3452,17 +3525,19 @@ var identifierOutput = $("#identifierOutput");
 var refreshAddressButton = $("#refreshBalance");
 var addressListOutput = $("#addressListOutput");
 
-var sendFromInput = $("#wallet-address-select");
+var sendFromInput = $("#wallet-from-address-select");
 var sendToInput = $("#wallet-send-address");
 var sendAmountInput = $("#wallet-send-amount-flo");
+var sendCommentInput = $("#wallet-send-message");
 var sendOutput = $("#sendOutput");
 
+// FLOVAULT REGISTER
 registerBtn.click(function () {
     var data = {};
     if (emailInput.val().length > 3)
         data = {email: emailInput.val()};
 
-    $.post("http://flovault.alexandria.io/wallet/create", data, function (response) {
+    $.post(apiProtocol+"//flovault.alexandria.io/wallet/create", data, function (response) {
         console.log("Create Response");
         console.log(response);
         registerOutput.text(JSON.stringify(response, null, 2));
@@ -3480,9 +3555,10 @@ registerBtn.click(function () {
     });
 });
 
+// FLOVAULT LOAD WALLET
 function FloVaultIdentify() {
 	$.ajax({
-		url: 'http://flovault.alexandria.io/wallet/checkload/' + identifierInput.val(),
+		url: apiProtocol+'//flovault.alexandria.io/wallet/checkload/' + identifierInput.val(),
 		success: function(response) {
 	         console.log("Check Load Response");
 	         console.log(response);
@@ -3511,6 +3587,7 @@ function FloVaultIdentify() {
 	});
 }
 
+// FLOVAULT LOAD ADDRESSES
 var loadedAddresses;
 function newFloVaultAddress() {
     wallet.generateAddress();
@@ -3518,28 +3595,32 @@ function newFloVaultAddress() {
     updateAddressList();
 }
 
+// FLOVAULT REFRESH BALANCES
 function refreshFloVaultBalances() {
     wallet.refreshBalances();
     updateAddressList();
 }
 
+// FLOVAULT UPDATE ADDRESS LIST
 function updateAddressList() {
 	document.getElementById('wallet-balance-amount').innerHTML = 'Updating ...'
 	if ( (!wallet) || (Object.keys(wallet.balances).length == 0) || (loadedAddresses ==  Object.keys(wallet.balances).length) )  {
 		console.log('Running Timer');
-		var walletWaitTimeoutId = setTimeout("updateAddressList()", 1000);
+		var walletWaitTimeoutId = setTimeout("updateAddressList()", 1500);
 	} else {
 		clearTimeout(walletWaitTimeoutId);
 		console.log(wallet);
 		addressListOutput.text("");
 		var TotalBalance = 0;
 		document.getElementById('wallet-address-select').innerHTML = '<option value="">Select Address</option>';
+		document.getElementById('wallet-from-address-select').innerHTML = '<option value="">Select Address</option>';
 		document.getElementById('newPublisher-floAdd').innerHTML = '<option value="">Select Address</option>';
 		document.getElementById('newMediaPublisherFLO').innerHTML = '<option value="">Select Address</option>';
 		for (var addr in wallet.balances) {
 			addressListOutput.text(addressListOutput.text() + "\n" + addr + " : " + wallet.balances[addr]);
 			TotalBalance += wallet.balances[addr];
 			document.getElementById('wallet-address-select').innerHTML = document.getElementById('wallet-address-select').innerHTML + '<option value="'+ addr+'">' + addr +'</option>';
+			document.getElementById('wallet-from-address-select').innerHTML = document.getElementById('wallet-from-address-select').innerHTML + '<option value="'+ addr+'">' + addr +'</option>';
 			document.getElementById('newPublisher-floAdd').innerHTML = document.getElementById('newPublisher-floAdd').innerHTML + '<option value="'+ addr+'">' + addr +'</option>';
 			document.getElementById('newMediaPublisherFLO').innerHTML = document.getElementById('newMediaPublisherFLO').innerHTML + '<option value="'+ addr+'">' + addr +'</option>';
 		}
@@ -3550,6 +3631,7 @@ function updateAddressList() {
 		    if (document.getElementById('wallet-address-select').length > 1) {
 		        clearInterval(selectInterval);
 				document.getElementById('wallet-address-select').removeAttribute('disabled');
+				document.getElementById('wallet-from-address-select').removeAttribute('disabled');
 				document.getElementById('newPublisher-floAdd').removeAttribute('disabled');
 				document.getElementById('newMediaPublisherFLO').removeAttribute('disabled');
 				$('#newAddressBtn').removeClass('disabled');
@@ -3558,7 +3640,15 @@ function updateAddressList() {
 	}
 }
 
+// FLOVAULT SEND FLO
 function sendFloVault() {
-	wallet.sendCoins(sendFromInput.val(), sendToInput.val(), sendAmountInput.val());
-    refreshFloVaultBalances();
+	console.log( sendFromInput.val() + ' ' + sendToInput.val() + ' ' + sendAmountInput.val() + ' ' + sendCommentInput.val() );
+	if (window.confirm('Send '+ sendAmountInput.val() + ' FLO to ' + sendToInput.val() + ' with comment: ' + sendCommentInput.val() + '?')) { 
+		wallet.sendCoins(sendFromInput.val(), sendToInput.val(), sendAmountInput.val(), sendCommentInput.val(), sendcallback());
+	    refreshFloVaultBalances();
+	}
+}
+
+function sendcallback(data) {
+//	alert('FLO Sent!');
 }
